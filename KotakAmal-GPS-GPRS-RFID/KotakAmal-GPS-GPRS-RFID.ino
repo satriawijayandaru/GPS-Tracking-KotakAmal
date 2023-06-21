@@ -34,7 +34,7 @@ String storedPassword = "";
 MFRC522 mfrc522(SS_PIN, RST_PIN);
 String readUIDcontent;
 bool UIDbtnStat = 0;
-
+String compareUID;
 //BUTTON CONFIG (ON BOARD FLASH BUTTON)
 int btn = 0;
 int btnFunc = 0;
@@ -60,6 +60,7 @@ void setup() {
   EEPROM.begin(512);
   SPI.begin();
   mfrc522.PCD_Init();
+  compareUID = readEEPROM(rfidUID1);
 }
 
 void loop() {
@@ -99,6 +100,9 @@ void readRFID() {
     writeEEPROM(rfidUID1, readUIDcontent);
     Serial.print("EEPROM VALUE AFTER = ");
     Serial.println(readEEPROM(rfidUID1));
+    compareUID = readEEPROM(rfidUID1);
+    Serial.print("compareUID = ");
+    Serial.println(compareUID);
     UIDbtnStat = 0;
   }
 }
@@ -121,6 +125,12 @@ void readRFIDStandby() {
     }
     readUIDcontent = content;
     Serial.println(readUIDcontent);
+    if(compareUID == readUIDcontent){
+      Serial.println("MATCH");
+    }
+    else{
+      Serial.println("NO MATCH");
+    }
   }
 }
 
