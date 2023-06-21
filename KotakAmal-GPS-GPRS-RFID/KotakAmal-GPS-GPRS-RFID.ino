@@ -32,6 +32,8 @@ String storedPassword = "";
 #define SS_PIN 2
 #define RST_PIN 16
 MFRC522 mfrc522(SS_PIN, RST_PIN);
+String readUID;
+bool UIDbtnStat = 0;
 
 //BUTTON CONFIG (ON BOARD FLASH BUTTON)
 int btn = 0;
@@ -66,33 +68,41 @@ void loop() {
   if (btn1.clicks != 0) btnFunc = btn1.clicks;
   if (btnFunc == -1) {
     btnFunc = 0;
-    Serial.println("Clearing EEPROM");
-    for (int i = 0 ; i < EEPROM.length() ; i++) {
-      EEPROM.write(i, 0);
-      Serial.println(i);
-    }
-    EEPROM.commit();
+    UIDbtnStat = 1;
+    Serial.println("Ready to read RFID");
+    //    eepromClear();/
   }
 }
 
 void readRFID() {
-  if ( ! mfrc522.PICC_IsNewCardPresent()){
-    return;
-  }
-  if ( ! mfrc522.PICC_ReadCardSerial()){
-    return;
-  }
-  Serial.println();
-  Serial.print(" UID tag :");
+  if (UIDbtnStat == 1) {
+    if ( ! mfrc522.PICC_IsNewCardPresent()) {
+      return;
+    }
+    if ( ! mfrc522.PICC_ReadCardSerial()) {
+      return;
+    }
+    Serial.print(" UID tag :");
 
-  String content = "";
-  byte letter;
-  for (byte i = 0; i < mfrc522.uid.size; i++){
-    Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
-    Serial.print(mfrc522.uid.uidByte[i], HEX);
-    content.concat(String(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " "));
-    content.concat(String(mfrc522.uid.uidByte[i], HEX));
+    String content = "";
+    byte letter;
+    for (byte i = 0; i < mfrc522.uid.size; i++) {
+      content.concat(String(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " "));
+      content.concat(String(mfrc522.uid.uidByte[i], HEX));
+    }
+    readUID = content;
+    Serial.println(readUID);
+    UIDbtnStat = 0;
   }
+}
+
+void eepromClear() {
+  Serial.println("Clearing EEPROM");
+  for (int i = 0 ; i < EEPROM.length() ; i++) {
+    EEPROM.write(i, 0);
+    Serial.println(i);
+  }
+  EEPROM.commit();
 }
 
 void setupWifi() {
