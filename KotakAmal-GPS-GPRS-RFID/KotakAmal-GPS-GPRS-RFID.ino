@@ -32,7 +32,7 @@ String storedPassword = "";
 #define SS_PIN 2
 #define RST_PIN 16
 MFRC522 mfrc522(SS_PIN, RST_PIN);
-String readUID;
+String readUIDcontent;
 bool UIDbtnStat = 0;
 
 //BUTTON CONFIG (ON BOARD FLASH BUTTON)
@@ -64,6 +64,7 @@ void setup() {
 
 void loop() {
   readRFID();
+  readRFIDStandby();
   btn1.Update();
   if (btn1.clicks != 0) btnFunc = btn1.clicks;
   if (btnFunc == -1) {
@@ -71,6 +72,9 @@ void loop() {
     UIDbtnStat = 1;
     Serial.println("Ready to read RFID");
     //    eepromClear();/
+    Serial.print("EEPROM VALUE BEFORE = ");
+    Serial.println(readEEPROM(rfidUID1));
+
   }
 }
 
@@ -90,10 +94,61 @@ void readRFID() {
       content.concat(String(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " "));
       content.concat(String(mfrc522.uid.uidByte[i], HEX));
     }
-    readUID = content;
-    Serial.println(readUID);
+    readUIDcontent = content;
+    Serial.println(readUIDcontent);
+    writeEEPROM(rfidUID1, readUIDcontent);
+    Serial.print("EEPROM VALUE AFTER = ");
+    Serial.println(readEEPROM(rfidUID1));
     UIDbtnStat = 0;
   }
+}
+
+void readRFIDStandby() {
+  if (UIDbtnStat == 0) {
+    if ( ! mfrc522.PICC_IsNewCardPresent()) {
+      return;
+    }
+    if ( ! mfrc522.PICC_ReadCardSerial()) {
+      return;
+    }
+    Serial.print(" UID tag :");
+
+    String content = "";
+    byte letter;
+    for (byte i = 0; i < mfrc522.uid.size; i++) {
+      content.concat(String(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " "));
+      content.concat(String(mfrc522.uid.uidByte[i], HEX));
+    }
+    readUIDcontent = content;
+    Serial.println(readUIDcontent);
+  }
+}
+
+void writeEEPROM(int address, const String& data) {
+  int length = data.length();
+
+  // Write the length of the string as the first byte
+  EEPROM.write(address, length);
+
+  // Write each character of the string
+  for (int i = 0; i < length; i++) {
+    EEPROM.write(address + 1 + i, data[i]);
+  }
+
+  // Commit the changes to EEPROM
+  EEPROM.commit();
+}
+
+String readEEPROM(int address) {
+  int length = EEPROM.read(address); // Read the length of the string
+
+  String data = "";
+  for (int i = 0; i < length; i++) {
+    char character = EEPROM.read(address + 1 + i); // Read each character of the string
+    data += character;
+  }
+
+  return data;
 }
 
 void eepromClear() {
