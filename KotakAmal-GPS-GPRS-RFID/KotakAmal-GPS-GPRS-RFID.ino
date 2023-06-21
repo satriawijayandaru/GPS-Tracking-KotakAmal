@@ -30,7 +30,7 @@ String storedPassword = "";
 
 //RFID DECLARATION
 #define SS_PIN 2
-#define RST_PIN 0
+#define RST_PIN 16
 MFRC522 mfrc522(SS_PIN, RST_PIN);
 
 //BUTTON CONFIG (ON BOARD FLASH BUTTON)
@@ -55,10 +55,13 @@ void setup() {
   btn1.debounceTime   = 20;
   btn1.multiclickTime = 250;
   btn1.longClickTime = 2000;
-  EEPROM.begin(64);
+  EEPROM.begin(512);
+  SPI.begin();
+  mfrc522.PCD_Init();
 }
 
 void loop() {
+  readRFID();
   btn1.Update();
   if (btn1.clicks != 0) btnFunc = btn1.clicks;
   if (btnFunc == -1) {
@@ -69,6 +72,26 @@ void loop() {
       Serial.println(i);
     }
     EEPROM.commit();
+  }
+}
+
+void readRFID() {
+  if ( ! mfrc522.PICC_IsNewCardPresent()){
+    return;
+  }
+  if ( ! mfrc522.PICC_ReadCardSerial()){
+    return;
+  }
+  Serial.println();
+  Serial.print(" UID tag :");
+
+  String content = "";
+  byte letter;
+  for (byte i = 0; i < mfrc522.uid.size; i++){
+    Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
+    Serial.print(mfrc522.uid.uidByte[i], HEX);
+    content.concat(String(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " "));
+    content.concat(String(mfrc522.uid.uidByte[i], HEX));
   }
 }
 
