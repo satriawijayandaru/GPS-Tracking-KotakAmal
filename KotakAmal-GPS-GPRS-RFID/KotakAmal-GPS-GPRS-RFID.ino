@@ -1,5 +1,16 @@
-#include <ESP8266WiFi.h>
-#include <ESP8266mDNS.h>
+/*
+ * @AUTHOR .. SATRIA WIJAYANDARU - @yanda1998
+ * 
+ * PIN DECLARATION
+ * # ESP8266 - PCB PROTOTYPE V0.1
+ * - RESET BTN    = 0
+ * - RFID SS PIN  = 5
+ * - RFID RST PIN = 4
+ * - RELAY SOLENOID = 10
+ */
+
+//#include <ESP8266WiFi.h>
+//#include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 #include <PubSubClient.h>
@@ -29,12 +40,13 @@ String storedSSID = "";
 String storedPassword = "";
 
 //RFID DECLARATION
-#define SS_PIN 2
-#define RST_PIN 16
+#define SS_PIN 5
+#define RST_PIN 4
 MFRC522 mfrc522(SS_PIN, RST_PIN);
 String readUIDcontent;
 bool UIDbtnStat = 0;
 String compareUID;
+
 //BUTTON CONFIG (ON BOARD FLASH BUTTON)
 int btn = 0;
 int btnFunc = 0;
@@ -50,10 +62,14 @@ int rfidUID2 = 96;
 //LED DECLARATION
 int ledPin = LED_BUILTIN;
 
+//RELAY SOLENOID DECLARATION
+int solenoidPin = 10;
+
 void setup() {
   Serial.begin(115200);
   setupWifi();
   pinMode(btn, INPUT);
+  pinMode(solenoidPin, OUTPUT);
   btn1.debounceTime   = 20;
   btn1.multiclickTime = 250;
   btn1.longClickTime = 2000;
@@ -61,6 +77,7 @@ void setup() {
   SPI.begin();
   mfrc522.PCD_Init();
   compareUID = readEEPROM(rfidUID1);
+  digitalWrite(solenoidPin, LOW);
 }
 
 void loop() {
@@ -76,6 +93,18 @@ void loop() {
     Serial.print("EEPROM VALUE BEFORE = ");
     Serial.println(readEEPROM(rfidUID1));
 
+  }
+}
+
+void solenoidControl(String UID){
+  if(compareUID == UID){
+    Serial.println("UNLOCKING SOLENOID");
+    digitalWrite(solenoidPin, HIGH);
+    delay(5000);
+    Serial.println("LOCKING SOLENOID");
+  }
+  else{
+    Serial.println("RFID NOT RECOGNIZED");
   }
 }
 
@@ -125,12 +154,8 @@ void readRFIDStandby() {
     }
     readUIDcontent = content;
     Serial.println(readUIDcontent);
-    if(compareUID == readUIDcontent){
-      Serial.println("MATCH");
-    }
-    else{
-      Serial.println("NO MATCH");
-    }
+    solenoidControl(readUIDcontent);
+    
   }
 }
 
