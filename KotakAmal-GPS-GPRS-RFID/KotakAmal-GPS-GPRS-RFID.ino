@@ -1,13 +1,15 @@
 /*
- * @AUTHOR .. SATRIA WIJAYANDARU - @yanda1998
- * 
- * PIN DECLARATION
- * # ESP8266 - PCB PROTOTYPE V0.1
- * - RESET BTN    = 0
- * - RFID SS PIN  = 5
- * - RFID RST PIN = 4
- * - RELAY SOLENOID = 10
- */
+   @AUTHOR .. SATRIA WIJAYANDARU - @yanda1998
+
+   PIN DECLARATION
+   # ESP8266 - PCB PROTOTYPE V0.1
+   - RESET BTN    = 0
+   - RFID SS PIN  = 5
+   - RFID RST PIN = 4
+   - RELAY SOLENOID = 21
+   - BUZZER PIN   = 13
+   - GPS RX       = 22
+*/
 
 //#include <ESP8266WiFi.h>
 //#include <ESP8266mDNS.h>
@@ -20,6 +22,7 @@
 #include <MFRC522.h>
 #include <Wire.h>
 #include "ClickButton.h"
+#include <SoftwareSerial.h>
 
 //WIFI AND MQTT BROKER DECLARATION
 #ifndef STASSID
@@ -63,13 +66,28 @@ int rfidUID2 = 96;
 int ledPin = LED_BUILTIN;
 
 //RELAY SOLENOID DECLARATION
-int solenoidPin = 10;
+int solenoidPin = 21;
+
+//SIM MODULE SIM800L DECLARATION
+//#define simSeri/al SERIAL2
+
+//GPS DECLARATION
+int gpsRX = 22;
+int gpsTX = 15;
+EspSoftwareSerial::UART gpsSerial;
+
+//BUZZER DECLARATION
+int buzzerPin = 13;
 
 void setup() {
   Serial.begin(115200);
+  Serial2.begin(115200);
+  gpsSerial.begin(9600, SWSERIAL_8N1, gpsRX, gpsTX, false);
   setupWifi();
   pinMode(btn, INPUT);
   pinMode(solenoidPin, OUTPUT);
+  pinMode(buzzerPin, OUTPUT);
+
   btn1.debounceTime   = 20;
   btn1.multiclickTime = 250;
   btn1.longClickTime = 2000;
@@ -78,6 +96,8 @@ void setup() {
   mfrc522.PCD_Init();
   compareUID = readEEPROM(rfidUID1);
   digitalWrite(solenoidPin, LOW);
+  checkGpsSerial();
+  startupTone();
 }
 
 void loop() {
@@ -96,14 +116,24 @@ void loop() {
   }
 }
 
-void solenoidControl(String UID){
-  if(compareUID == UID){
-    Serial.println("UNLOCKING SOLENOID");
+void checkGpsSerial() {
+  if (!gpsSerial) { // If the object did not initialize, then its configuration is invalid
+    Serial.println("Invalid EspSoftwareSerial pin configuration, check config");
+    while (1) { // Don't continue with invalid configuration
+      delay (1000);
+    }
+  }
+}
+
+void solenoidControl(String UID) {
+  if (compareUID == UID) {
     digitalWrite(solenoidPin, HIGH);
+    Serial.println("UNLOCKING SOLENOID");
     delay(5000);
+    digitalWrite(solenoidPin, LOW);
     Serial.println("LOCKING SOLENOID");
   }
-  else{
+  else {
     Serial.println("RFID NOT RECOGNIZED");
   }
 }
@@ -155,7 +185,7 @@ void readRFIDStandby() {
     readUIDcontent = content;
     Serial.println(readUIDcontent);
     solenoidControl(readUIDcontent);
-    
+
   }
 }
 
@@ -206,4 +236,25 @@ void setupWifi() {
   Serial.println("WiFi Tersambung");
   Serial.println("Alamat IP MQTT Client : ");
   Serial.println(WiFi.localIP());
+}
+
+
+
+void startupTone() {
+  digitalWrite(buzzerPin, HIGH);
+  delay(150);
+  digitalWrite(buzzerPin, LOW);
+  delay(150);
+  digitalWrite(buzzerPin, HIGH);
+  delay(150);
+  digitalWrite(buzzerPin, LOW);
+  delay(150);
+  digitalWrite(buzzerPin, HIGH);
+  delay(150);
+  digitalWrite(buzzerPin, LOW);
+  delay(150);
+  digitalWrite(buzzerPin, HIGH);
+  delay(150);
+  digitalWrite(buzzerPin, LOW);
+  delay(150);
 }
